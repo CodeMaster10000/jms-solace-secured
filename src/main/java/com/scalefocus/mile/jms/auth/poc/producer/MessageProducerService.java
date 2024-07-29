@@ -1,7 +1,7 @@
 package com.scalefocus.mile.jms.auth.poc.producer;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.core.Response;
+import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

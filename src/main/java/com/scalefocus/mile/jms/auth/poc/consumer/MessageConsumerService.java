@@ -2,13 +2,14 @@ package com.scalefocus.mile.jms.auth.poc.consumer;
 
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.Startup;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.jms.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -100,7 +101,8 @@ final class MessageConsumerService implements MessageListener {
     @Override
     public void onMessage(Message message) {
         try {
-            if (message instanceof TextMessage textMessage) {
+            if (message instanceof TextMessage) {
+                TextMessage textMessage = (TextMessage) message;
                 String messageContent = textMessage.getText();
                 logger.info("Received message: {}", messageContent);
             } else {
@@ -110,4 +112,5 @@ final class MessageConsumerService implements MessageListener {
             logger.error("Error processing JMS message", e);
         }
     }
+
 }

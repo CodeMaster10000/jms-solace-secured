@@ -1,8 +1,8 @@
 package com.scalefocus.mile.jms.auth.poc.core;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Produces;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
 import jakarta.jms.ConnectionFactory;
 import org.apache.qpid.jms.JmsConnectionFactory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
