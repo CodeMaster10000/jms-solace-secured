@@ -12,13 +12,41 @@ ensuring robust security and data integrity throughout the messaging process.
 This setup effectively demonstrates the seamless integration and secured message exchange capabilities of
 Quarkus and Solace in a real-world scenario.
 
-## Running the application in dev mode
+## Initial Setup
 
-You can run your application in dev mode that enables live coding using:
+1. Execute the PowerShell script at the root of the project:
+
+```shell script
+./create-keystore-truststore.ps1
+```
+
+2. Navigate to the Docker configuration directory and bring up the Docker containers:
+
+```shell script
+cd src/main/docker
+docker-compose up
+```
+
+3. Open your web browser and navigate to [http://localhost:8080](http://localhost:8080). Log in with the credentials `admin:admin`.
+
+4. Go to `Default VPN -> Queues` and create a queue with the name `demo-queue`.
+
+5. Go to `System -> TLS Configuration`. Edit and add the `combined-cert-key.pem` located in the `src/main/resources/security` folder, leaving the password field blank. Click apply.
+
+## Running the Application
+
+After completing the initial setup, you can run the application using the following command:
 
 ```shell script
 ./mvnw compile quarkus:dev
 ```
+
+## Test Process
+
+Navigate to the Quarkus DEV-UI and find the Endpoint `solace/{message}` and send the request.
+This will trigger the JMS Producer `MessageProducerService` to send a message to the `demo-queue`. 
+The `MessageConsumerService` acts as a JMS Consumer and will listen for events on that queue.
+Verify the application logs for operation validity.
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
 
@@ -58,48 +86,3 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 ```
 
 You can then execute your native executable with: `./target/jms-auth-poc-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- RESTEasy Classic JSON-B ([guide](https://quarkus.io/guides/rest-json)): JSON-B serialization support for RESTEasy Classic
-- OpenID Connect ([guide](https://quarkus.io/guides/security-openid-connect)): Verify Bearer access tokens and authenticate users with Authorization Code Flow
-- RESTEasy Classic ([guide](https://quarkus.io/guides/resteasy)): REST endpoint framework implementing Jakarta REST and more
-- Artemis JMS ([guide](https://docs.quarkiverse.io/quarkus-artemis/dev/index.html)): Use JMS APIs to connect to ActiveMQ Artemis via its native protocol
-
-## Initial Setup
-
-1. Execute the PowerShell script at the root of the project:
-
-```shell script
-./create-keystore-truststore.ps1
-```
-
-2. Navigate to the Docker configuration directory and bring up the Docker containers:
-
-```shell script
-cd src/main/docker
-docker-compose up
-```
-
-3. Open your web browser and navigate to [http://localhost:8080](http://localhost:8080). Log in with the credentials `admin:admin`.
-
-4. Go to `Default VPN -> Queues` and create a queue with the name `demo-queue`.
-
-5. Go to `System -> TLS Configuration`. Edit and add the `combined-cert-key.pem` located in the `src/main/resources/security` folder, leaving the password field blank. Click apply.
-
-## Running the Application
-
-After completing the initial setup, you can run the application using the following command:
-
-```shell script
-./mvnw compile quarkus:dev
-```
-
-## Test Process
-
-Navigate to the Quarkus DEV-UI and find the Endpoint `solace/{message}` and send the request.
-This will trigger the JMS Producer `MessageProducerService` to send a message to the `demo-queue`. 
-The `MessageConsumerService` acts as a JMS Consumer and will listen for events on that queue.
-Verify the application logs for operation validity.
