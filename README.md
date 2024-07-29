@@ -25,18 +25,21 @@ If you are running on Mac/Linux, execute:
 ./create-keystore-truststore.sh
 ```
 
-2. Navigate to the Docker configuration directory and bring up the Docker containers:
+2. Make sure you create a .env file at the root of the project and 
+   add the environment variables that the `application.properties` file uses.
+
+3. Navigate to the Docker configuration directory and bring up the Docker containers:
 
 ```shell script
 cd src/main/docker
 docker-compose up
 ```
 
-3. Open your web browser and navigate to [http://localhost:8080](http://localhost:8080). Log in with the credentials `admin:admin`.
+4. Open your web browser and navigate to [http://localhost:8080](http://localhost:8080). Log in with the credentials `admin:admin`.
 
-4. Go to `Default VPN -> Queues` and create a queue with the name `demo-queue`.
+5. Go to `Default VPN -> Queues` and create a queue with the name `demo-queue`.
 
-5. Go to `System -> TLS Configuration`. Edit and add the `combined-cert-key.pem` located in the `src/main/resources/security` folder, leaving the password field blank. Click apply.
+6. Go to `System -> TLS Configuration`. Edit and add the `combined-cert-key.pem` located in the `src/main/resources/security` folder, leaving the password field blank. Click apply.
 
 ## Running the Application
 
