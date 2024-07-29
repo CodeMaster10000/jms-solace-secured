@@ -1,59 +1,94 @@
 package com.scalefocus.mile.jms.auth.poc.core;
 
-import com.solacesystems.jms.SolConnectionFactory;
-import com.solacesystems.jms.SolJmsUtility;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import jakarta.jms.ConnectionFactory;
+import org.apache.qpid.jms.JmsConnectionFactory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.jms.ConnectionFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
 
 @ApplicationScoped
-public final class BrokerClientConfig {
+public class BrokerClientConfig {
 
-    private final String solaceHost;
-    private final String solaceVpn;
-    private final String solaceUsername;
-    private final String solacePassword;
-    private final String trustStorePath;
-    private final String trustStorePassword;
-    private final String keyStorePath;
-    private final String keyStorePassword;
+    private static final Logger logger = LoggerFactory.getLogger(BrokerClientConfig.class);
 
-    public BrokerClientConfig(
-            @ConfigProperty(name = "solace.host") String solaceHost,
-            @ConfigProperty(name = "solace.vpn") String solaceVpn,
-            @ConfigProperty(name = "solace.username") String solaceUsername,
-            @ConfigProperty(name = "solace.password") String solacePassword,
-            @ConfigProperty(name = "solace.ssl.trust-store") String trustStorePath,
-            @ConfigProperty(name = "solace.ssl.trust-store-password") String trustStorePassword,
-            @ConfigProperty(name = "solace.ssl.key-store") String keyStorePath,
-            @ConfigProperty(name = "solace.ssl.key-store-password") String keyStorePassword
-    ) {
-        this.solaceHost = solaceHost;
-        this.solaceVpn = solaceVpn;
-        this.solaceUsername = solaceUsername;
-        this.solacePassword = solacePassword;
-        this.trustStorePath = trustStorePath;
-        this.trustStorePassword = trustStorePassword;
-        this.keyStorePath = keyStorePath;
-        this.keyStorePassword = keyStorePassword;
+    @ConfigProperty(name = "solace.host")
+    String solaceHost;
+
+    @ConfigProperty(name = "solace.username")
+    String solaceUsername;
+
+    @ConfigProperty(name = "solace.password")
+    String solacePassword;
+
+    @ConfigProperty(name = "solace.ssl.trust-store")
+    String trustStorePath;
+
+    @ConfigProperty(name = "solace.ssl.trust-store-password")
+    String trustStorePassword;
+
+    @ConfigProperty(name = "solace.ssl.key-store")
+    String keyStorePath;
+
+    @ConfigProperty(name = "solace.ssl.key-store-password")
+    String keyStorePassword;
+
+    @PostConstruct
+    void initializeSslContext() {
+        System.setProperty("javax.net.ssl.trustStore", trustStorePath);
+        System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
+        System.setProperty("javax.net.ssl.keyStore", keyStorePath);
+        System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
     }
 
     @Produces
-    ConnectionFactory connectionFactory() throws Exception {
-        SolConnectionFactory connectionFactory = SolJmsUtility.createConnectionFactory();
-        connectionFactory.setHost(solaceHost);
-        connectionFactory.setVPN(solaceVpn);
-        connectionFactory.setUsername(solaceUsername);
-        connectionFactory.setPassword(solacePassword);
+    public ConnectionFactory createConnectionFactory() {
+        try {
+            KeyStore keyStore = loadKeystore(keyStorePath, keyStorePassword);
+            KeyStore trustStore = loadKeystore(trustStorePath, trustStorePassword);
+            KeyManagerFactory kmf = getKeyManagerFactory(keyStore);
+            TrustManagerFactory tmf = getTrustManagerFactory(trustStore);
+            SSLContext sslContext = getSslContext(kmf, tmf);
+            JmsConnectionFactory factory = new JmsConnectionFactory(solaceUsername, solacePassword, solaceHost);
+            factory.setSslContext(sslContext);
+            return factory;
+        } catch (Exception e) {
+            logger.error("Could not open Connection to Broker, cause: {}", e.getMessage());
+            return null;
+        }
+    }
 
-        // Set SSL properties
-        connectionFactory.setSSLTrustStore(trustStorePath);
-        connectionFactory.setSSLTrustStorePassword(trustStorePassword);
-        connectionFactory.setSSLKeyStore(keyStorePath);
-        connectionFactory.setSSLKeyStorePassword(keyStorePassword);
+    private static SSLContext getSslContext(KeyManagerFactory kmf, TrustManagerFactory tmf) throws NoSuchAlgorithmException, KeyManagementException {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+        return sslContext;
+    }
 
-        return connectionFactory;
+    private static TrustManagerFactory getTrustManagerFactory(KeyStore trustStore) throws NoSuchAlgorithmException, KeyStoreException {
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+        return tmf;
+    }
+
+    private KeyManagerFactory getKeyManagerFactory(KeyStore keyStore) throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, keyStorePassword.toCharArray());
+        return kmf;
+    }
+
+    private KeyStore loadKeystore(String keyStorePath, String keyStorePassword) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
+        return keyStore;
     }
 }

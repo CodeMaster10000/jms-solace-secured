@@ -33,15 +33,15 @@ if (Test-Path -Path "$projectRoot\src\main\resources\security") {
 New-Item -ItemType Directory -Path "$projectRoot\src\main\resources\security"
 
 # Generate a CA private key and certificate
-openssl genpkey -algorithm RSA -out $caKey
-openssl req -x509 -new -nodes -key $caKey -sha256 -days 365 -out $caCert -subj "/CN=MyCA"
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl genpkey -algorithm RSA -out $caKey
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl req -x509 -new -nodes -key $caKey -sha256 -days 365 -out $caCert -subj "/CN=MyCA"
 
 # Generate a server private key and certificate signing request (CSR)
-openssl genpkey -algorithm RSA -out $serverKey
-openssl req -new -key $serverKey -out server.csr -subj "/CN=localhost"
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl genpkey -algorithm RSA -out $serverKey
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl req -new -key $serverKey -out server.csr -subj "/CN=localhost"
 
 # Sign the server CSR with the CA key to get the server certificate
-openssl x509 -req -in server.csr -CA $caCert -CAkey $caKey -CAcreateserial -out $serverCert -days 365 -sha256
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl x509 -req -in server.csr -CA $caCert -CAkey $caKey -CAcreateserial -out $serverCert -days 365 -sha256
 
 # Combine server certificate and key into one PEM file for Solace
 Get-Content $serverCert, $serverKey | Out-File -Encoding ascii $combinedCertKey
@@ -59,7 +59,7 @@ keytool -import -alias servercert -file $serverCert -keystore $truststorePath -s
 Write-Host "Keystore and truststore created successfully in src/main/resources/security directory."
 Write-Host "Combined certificate and key created in src/main/resources/security/combined-cert-key.pem"
 
-# Test the connection using OpenSSL
-openssl s_client -connect localhost:55443 -CAfile $caCert
+# Test the connection using C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl
+C:\Users\mile.stanislavov\data\tools\OpenSSL-Win64\bin\openssl s_client -connect localhost:55443 -CAfile $caCert
 
 Write-Host "Revocation Check should be disabled. You can now try to re-import the certificate into Solace and verify the connection."

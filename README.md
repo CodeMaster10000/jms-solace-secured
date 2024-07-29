@@ -20,6 +20,11 @@ Quarkus and Solace in a real-world scenario.
 ./create-keystore-truststore.ps1
 ```
 
+If you are running on Mac/Linux, execute:
+```shell script
+./create-keystore-truststore.sh
+```
+
 2. Navigate to the Docker configuration directory and bring up the Docker containers:
 
 ```shell script

@@ -5,11 +5,10 @@ import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.jms.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jms.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +24,7 @@ final class MessageConsumerService implements MessageListener {
     private final String solaceQueue;
     private Connection connection;
     private Session session;
+    private MessageConsumer consumer;
     private ScheduledExecutorService scheduler;
 
     MessageConsumerService(
@@ -38,25 +38,25 @@ final class MessageConsumerService implements MessageListener {
     @PostConstruct
     void initialize() {
         try {
-            initializeBrokerConnection();
+            establishBrokerConnection();
             scheduleConnectionValidation();
         } catch (JMSException e) {
             logger.error("Error initializing JMS consumer {}", e.getMessage());
         }
     }
 
-    private void initializeBrokerConnection() throws JMSException {
+    private void establishBrokerConnection() throws JMSException {
         connection = connectionFactory.createConnection();
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(solaceQueue);
-        MessageConsumer consumer = session.createConsumer(queue);
+        consumer = session.createConsumer(queue);
         consumer.setMessageListener(this);
         connection.start();
     }
 
     private void scheduleConnectionValidation() {
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::validateConnection, 30, 30, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(this::validateConnection, 5, 5, TimeUnit.MINUTES);
     }
 
     private void validateConnection() {
@@ -64,13 +64,13 @@ final class MessageConsumerService implements MessageListener {
             if (connection == null || session == null || !connection.getMetaData().getJMSProviderName().equals("Solace")) {
                 logger.warn("JMS connection/session is null or inactive. Reinitializing...");
                 cleanup();
-                initializeBrokerConnection();
+                establishBrokerConnection();
             }
         } catch (JMSException e) {
             logger.error("Error validating/reinitializing JMS connection/session", e);
             cleanup();
             try {
-                initializeBrokerConnection();
+                establishBrokerConnection();
             } catch (JMSException ex) {
                 logger.error("Error reinitializing JMS connection/session", ex);
             }
@@ -80,6 +80,9 @@ final class MessageConsumerService implements MessageListener {
     @PreDestroy
     void cleanup() {
         try {
+            if (consumer != null) {
+                consumer.close();
+            }
             if (session != null) {
                 session.close();
             }

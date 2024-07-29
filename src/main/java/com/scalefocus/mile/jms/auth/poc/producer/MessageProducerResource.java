@@ -1,8 +1,6 @@
 package com.scalefocus.mile.jms.auth.poc.producer;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 
 @Path("/solace")

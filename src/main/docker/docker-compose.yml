@@ -7,7 +7,8 @@ services:
     environment:
       - username_admin_globalaccesslevel=admin
       - username_admin_password=admin
-      - service_ports=55555,55556,8008,8080,8081,55443
+      - service_ports=55555,55556,8008,8080,8081,55443,9005,5671,5672
+      - logging_debug=1 # Enable detailed logging
     ports:
       - "55555:55555"
       - "55556:55556"
@@ -15,9 +16,11 @@ services:
       - "8080:8080"
       - "8081:8081"
       - "55443:55443"
+      - "9005:9005"
+      - "5671:5671"
+      - "5672:5672"
     volumes:
       - solace-data:/var/lib/solace
-
     shm_size: '2gb' # Set shared memory size
 
 volumes:
