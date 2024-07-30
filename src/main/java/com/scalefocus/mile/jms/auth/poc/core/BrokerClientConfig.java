@@ -67,7 +67,7 @@ public class BrokerClientConfig {
      * @return the configured {@code ConnectionFactory}, or {@code null} if an error occurs during setup
      */
     @Produces
-    public ConnectionFactory createConnectionFactory() {
+    ConnectionFactory createConnectionFactory() {
         try {
             KeyStore keyStore = loadKeystore(keyStorePath, keyStorePassword);
             KeyStore trustStore = loadKeystore(trustStorePath, trustStorePassword);
