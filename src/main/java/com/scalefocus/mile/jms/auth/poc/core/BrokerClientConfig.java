@@ -17,6 +17,13 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 
+/**
+ * Configuration class for setting up the JMS broker client with SSL/TLS.
+ *
+ * <p>This class is responsible for loading the SSL context using the provided key store
+ * and trust store configurations, and producing a configured {@code ConnectionFactory} for
+ * connecting to the JMS broker.</p>
+ */
 @ApplicationScoped
 public class BrokerClientConfig {
 
@@ -43,6 +50,9 @@ public class BrokerClientConfig {
     @ConfigProperty(name = "solace.ssl.key-store-password")
     String keyStorePassword;
 
+    /**
+     * Initializes the SSL context by setting system properties for the key store and trust store paths and passwords.
+     */
     @PostConstruct
     void initializeSslContext() {
         System.setProperty("javax.net.ssl.trustStore", trustStorePath);
@@ -51,6 +61,11 @@ public class BrokerClientConfig {
         System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
     }
 
+    /**
+     * Creates and configures a JMS {@code ConnectionFactory} with SSL context.
+     *
+     * @return the configured {@code ConnectionFactory}, or {@code null} if an error occurs during setup
+     */
     @Produces
     public ConnectionFactory createConnectionFactory() {
         try {
