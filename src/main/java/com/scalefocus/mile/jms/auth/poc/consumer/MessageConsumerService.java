@@ -1,5 +1,6 @@
 package com.scalefocus.mile.jms.auth.poc.consumer;
 
+import com.scalefocus.mile.jms.auth.poc.core.ThreadSafe;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.Startup;
 import jakarta.jms.*;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 @ApplicationScoped
 @Unremovable
 @Startup
+@ThreadSafe
 final class MessageConsumerService implements MessageListener {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageConsumerService.class);
@@ -37,16 +39,16 @@ final class MessageConsumerService implements MessageListener {
     }
 
     @PostConstruct
-    void initialize() {
+    private void initialize() {
         try {
             establishBrokerConnection();
             scheduleConnectionValidation();
         } catch (JMSException e) {
-            logger.error("Error initializing JMS consumer {}", e.getMessage());
+            logger.error("Error initializing JMS consumer: {}", e.getMessage(), e);
         }
     }
 
-    private void establishBrokerConnection() throws JMSException {
+    private synchronized void establishBrokerConnection() throws JMSException {
         connection = connectionFactory.createConnection();
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(solaceQueue);
@@ -62,14 +64,18 @@ final class MessageConsumerService implements MessageListener {
 
     private void validateConnection() {
         try {
-            if (connection == null || session == null || !connection.getMetaData().getJMSProviderName().equals("Solace")) {
-                logger.warn("JMS connection/session is null or inactive. Reinitializing...");
-                cleanup();
-                establishBrokerConnection();
+            synchronized (this) {
+                if (connection == null || session == null) {
+                    logger.warn("JMS connection/session is null or inactive. Reinitializing...");
+                    cleanup();
+                    establishBrokerConnection();
+                }
             }
         } catch (JMSException e) {
             logger.error("Error validating/reinitializing JMS connection/session", e);
-            cleanup();
+            synchronized (this) {
+                cleanup();
+            }
             try {
                 establishBrokerConnection();
             } catch (JMSException ex) {
@@ -79,7 +85,7 @@ final class MessageConsumerService implements MessageListener {
     }
 
     @PreDestroy
-    void cleanup() {
+    private synchronized void cleanup() {
         try {
             if (consumer != null) {
                 consumer.close();
@@ -112,5 +118,4 @@ final class MessageConsumerService implements MessageListener {
             logger.error("Error processing JMS message", e);
         }
     }
-
 }
