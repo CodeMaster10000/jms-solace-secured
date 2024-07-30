@@ -34,7 +34,7 @@ final class MessageConsumerService implements MessageListener {
 
     private final ConnectionFactory connectionFactory;
     private final String solaceQueue;
-    private Connection connection;
+    private volatile Connection connection;
     private Session session;
     private MessageConsumer consumer;
     private ScheduledExecutorService scheduler;
@@ -75,13 +75,24 @@ final class MessageConsumerService implements MessageListener {
      *
      * @throws JMSException if an error occurs while establishing the connection or creating the session/consumer
      */
-    private synchronized void establishBrokerConnection() throws JMSException {
-        connection = connectionFactory.createConnection();
-        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        Queue queue = session.createQueue(solaceQueue);
-        consumer = session.createConsumer(queue);
+    void establishBrokerConnection() throws JMSException {
+        if (connection == null) { // First check (without locking)
+            synchronized (this) {
+                if (connection == null) { // Second check (with locking)
+                    connection = connectionFactory.createConnection();
+                    // Non-transactional session: can safely be shared among multiple consumers
+                    session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                    connection.start();
+                }
+            }
+        }
+    }
+
+    void createConsumer(String queueName) throws JMSException {
+        Queue queue = session.createQueue(queueName);
+        MessageConsumer consumer = session.createConsumer(queue);
         consumer.setMessageListener(this);
-        connection.start();
+        // No need to create a new session; reuse the existing session
     }
 
     /**
@@ -124,7 +135,7 @@ final class MessageConsumerService implements MessageListener {
      * and shutting down the scheduler. This method is called when the service is destroyed.
      */
     @PreDestroy
-    private synchronized void cleanup() {
+    synchronized void cleanup() {
         try {
             if (consumer != null) {
                 consumer.close();
