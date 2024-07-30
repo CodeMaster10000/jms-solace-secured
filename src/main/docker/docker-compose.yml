@@ -19,6 +19,7 @@ services:
       - "9005:9005"
       - "5671:5671"
       - "5672:5672"
+      - "1943:1943"
     volumes:
       - solace-data:/var/lib/solace
     shm_size: '2gb' # Set shared memory size
