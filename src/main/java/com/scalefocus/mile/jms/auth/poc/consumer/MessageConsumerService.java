@@ -1,5 +1,6 @@
 package com.scalefocus.mile.jms.auth.poc.consumer;
 
+import com.scalefocus.mile.jms.auth.poc.core.ThreadSafe;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
@@ -9,13 +10,24 @@ import jakarta.jms.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * A service for consuming JMS messages from a Solace queue. This class establishes
+ * and maintains a connection to the JMS broker, listens for messages on the configured
+ * queue, and processes incoming messages.
+ *
+ * <p>This class is designed to be thread-safe and automatically starts up with the
+ * application. It periodically validates the JMS connection and re-establishes it if
+ * necessary.</p>
+ */
 @ApplicationScoped
 @Unremovable
 @Startup
+@ThreadSafe
 final class MessageConsumerService implements MessageListener {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageConsumerService.class);
@@ -27,6 +39,13 @@ final class MessageConsumerService implements MessageListener {
     private MessageConsumer consumer;
     private ScheduledExecutorService scheduler;
 
+    /**
+     * Constructs a new {@code MessageConsumerService} with the specified JMS connection factory
+     * and queue name.
+     *
+     * @param connectionFactory the JMS connection factory
+     * @param solaceQueue       the name of the Solace queue to consume messages from
+     */
     MessageConsumerService(
             ConnectionFactory connectionFactory,
             @ConfigProperty(name = "solace.queue.data") String solaceQueue) {
@@ -35,17 +54,28 @@ final class MessageConsumerService implements MessageListener {
         initialize();
     }
 
+    /**
+     * Initializes the JMS consumer service by establishing a connection to the JMS broker
+     * and scheduling periodic validation of the connection.
+     */
     @PostConstruct
-    void initialize() {
+    private void initialize() {
         try {
             establishBrokerConnection();
             scheduleConnectionValidation();
         } catch (JMSException e) {
-            logger.error("Error initializing JMS consumer {}", e.getMessage());
+            logger.error("Error initializing JMS consumer: {}", e.getMessage());
         }
     }
 
-    private void establishBrokerConnection() throws JMSException {
+    /**
+     * Establishes a connection to the JMS broker, creates a session and a consumer for
+     * the specified queue, and sets this service as the message listener. The connection
+     * is then started to begin receiving messages.
+     *
+     * @throws JMSException if an error occurs while establishing the connection or creating the session/consumer
+     */
+    private synchronized void establishBrokerConnection() throws JMSException {
         connection = connectionFactory.createConnection();
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         Queue queue = session.createQueue(solaceQueue);
@@ -54,21 +84,33 @@ final class MessageConsumerService implements MessageListener {
         connection.start();
     }
 
-    private void scheduleConnectionValidation() {
+    /**
+     * Schedules periodic validation of the JMS connection using a single-threaded scheduled executor
+     * service. The connection is validated every 5 minutes.
+     */
+    private synchronized void scheduleConnectionValidation() {
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::validateConnection, 5, 5, TimeUnit.MINUTES);
     }
 
+    /**
+     * Validates the JMS connection and re-establishes it if necessary. This method is called
+     * periodically by the scheduled executor service.
+     */
     private void validateConnection() {
         try {
-            if (connection == null || session == null || !connection.getMetaData().getJMSProviderName().equals("Solace")) {
-                logger.warn("JMS connection/session is null or inactive. Reinitializing...");
-                cleanup();
-                establishBrokerConnection();
+            synchronized (this) {
+                if (connection == null || session == null) {
+                    logger.warn("JMS connection/session is null or inactive. Reinitializing...");
+                    cleanup();
+                    establishBrokerConnection();
+                }
             }
         } catch (JMSException e) {
             logger.error("Error validating/reinitializing JMS connection/session", e);
-            cleanup();
+            synchronized (this) {
+                cleanup();
+            }
             try {
                 establishBrokerConnection();
             } catch (JMSException ex) {
@@ -77,8 +119,12 @@ final class MessageConsumerService implements MessageListener {
         }
     }
 
+    /**
+     * Cleans up JMS resources by closing the consumer, session, and connection,
+     * and shutting down the scheduler. This method is called when the service is destroyed.
+     */
     @PreDestroy
-    void cleanup() {
+    private synchronized void cleanup() {
         try {
             if (consumer != null) {
                 consumer.close();
@@ -97,6 +143,12 @@ final class MessageConsumerService implements MessageListener {
         }
     }
 
+    /**
+     * Handles incoming JMS messages. If the message is a {@code TextMessage}, it logs the
+     * message content. Otherwise, it logs a warning indicating a non-text message was received.
+     *
+     * @param message the incoming JMS message
+     */
     @Override
     public void onMessage(Message message) {
         try {
