@@ -17,6 +17,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * A service that schedules and manages the consumption of messages from a Solace queue.
+ * This class uses the {@code MessageConsumerProvider} to establish connections and consume
+ * messages, ensuring all messages are processed within a scheduled interval.
+ */
 @ApplicationScoped
 @Unremovable
 @Startup
@@ -29,16 +34,28 @@ final class MessageConsumerService {
 
     private MessageConsumer consumer;
 
+    /**
+     * Constructs a new {@code MessageConsumerService} with the specified message consumer provider.
+     *
+     * @param messageConsumerProvider the provider to use for consuming messages
+     */
     MessageConsumerService(MessageConsumerProvider messageConsumerProvider) {
         this.messageConsumerProvider = messageConsumerProvider;
     }
 
+    /**
+     * Schedules the consumption of messages at fixed intervals, starting immediately.
+     */
     @PostConstruct
     void scheduleMessageConsumption() {
         ScheduledExecutorService scheduler = messageConsumerProvider.getScheduler();
         scheduler.scheduleAtFixedRate(this::consumeMessages, 0, 5, TimeUnit.MINUTES);
     }
 
+    /**
+     * Consumes messages from the queue, processing each one and waiting until all messages
+     * are processed before returning.
+     */
     private void consumeMessages() {
         try {
             int queueSize = getQueueSize();
@@ -54,6 +71,12 @@ final class MessageConsumerService {
         }
     }
 
+    /**
+     * Retrieves the number of messages currently enqueued in the specified Solace queue.
+     *
+     * @return the number of messages in the queue
+     * @throws JMSException if an error occurs while browsing the queue
+     */
     private int getQueueSize() throws JMSException {
         int count = 0;
         Session session = messageConsumerProvider.getSession();
@@ -68,6 +91,9 @@ final class MessageConsumerService {
         return count;
     }
 
+    /**
+     * Cleans up JMS resources by closing the consumer.
+     */
     private void cleanup() {
         try {
             if (consumer != null) {
