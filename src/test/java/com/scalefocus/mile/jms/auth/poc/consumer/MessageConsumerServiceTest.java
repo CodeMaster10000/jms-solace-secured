@@ -70,8 +70,8 @@ class MessageConsumerServiceTest {
         for (int i = 0; i < threads.length; i++) {
             final int index = i;
             threads[i] = new Thread(() -> {
-                try {
-                    consumers[index] = messageConsumerService.createConsumer();
+                try (MessageConsumer messageConsumer = messageConsumerService.createConsumer()){
+                    consumers[index] = messageConsumer;
                 } catch (JMSException e) {
                     logger.error("Error creating consumer", e);
                 }
@@ -85,7 +85,7 @@ class MessageConsumerServiceTest {
                 logger.error("Current thread interrupted", e);
             } finally {
                 for (MessageConsumer c : consumers) {
-                    c.close();
+                    if (c != null) c.close();
                 }
             }
         }
