@@ -14,7 +14,7 @@
         <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
         <quarkus.platform.version>2.16.0.Final</quarkus.platform.version>
         <skipITs>true</skipITs>
-        <surefire-plugin.version>3.2.5</surefire-plugin.version>
+        <surefire-plugin.version>3.3.1</surefire-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -55,6 +55,32 @@
             <artifactId>lombok</artifactId>
             <version>1.18.34</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- JUnit Jupiter dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>5.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.12.0</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

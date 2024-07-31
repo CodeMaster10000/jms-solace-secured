@@ -13,7 +13,8 @@ import java.lang.annotation.Target;
  * without introducing concurrency issues. It does not enforce any thread-safety
  * guarantees at the runtime level.</p>
  */
-@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Retention(RetentionPolicy.SOURCE)
 public @interface ThreadSafe {
+
 }
