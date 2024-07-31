@@ -1,7 +1,7 @@
 package com.scalefocus.mile.jms.auth.poc.producer;
 
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Response;
 
 @Path("/solace")
 public class MessageProducerResource {

@@ -3,9 +3,9 @@ package com.scalefocus.mile.jms.auth.poc.consumer;
 import com.scalefocus.mile.jms.auth.poc.core.ThreadSafe;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.Startup;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
 import jakarta.jms.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -139,8 +139,8 @@ final class MessageConsumerProvider implements MessageListener {
     @Override
     public void onMessage(Message message) {
         try {
-            if (message instanceof TextMessage textMessage) {
-                String messageContent = textMessage.getText();
+            if (message instanceof TextMessage) {
+                String messageContent = ((TextMessage) message).getText();
                 logger.info("Received message: {}", messageContent);
             } else {
                 logger.warn("Received non-text message");
