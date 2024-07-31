@@ -70,7 +70,8 @@ class MessageConsumerServiceTest {
         for (int i = 0; i < threads.length; i++) {
             final int index = i;
             threads[i] = new Thread(() -> {
-                try (MessageConsumer messageConsumer = messageConsumerService.createConsumer()){
+                try {
+                    MessageConsumer messageConsumer = messageConsumerService.createConsumer();
                     consumers[index] = messageConsumer;
                 } catch (JMSException e) {
                     logger.error("Error creating consumer", e);
@@ -78,7 +79,6 @@ class MessageConsumerServiceTest {
             });
 
             threads[i].start();
-
             try {
                 threads[i].join();
             } catch (InterruptedException e) {

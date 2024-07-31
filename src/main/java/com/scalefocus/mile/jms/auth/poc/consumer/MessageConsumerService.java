@@ -99,10 +99,9 @@ final class MessageConsumerService implements MessageListener {
 
     MessageConsumer createConsumer() throws JMSException {
         Queue queue = session.createQueue(solaceQueue);
-        try (MessageConsumer consumer = session.createConsumer(queue)) {
-            consumer.setMessageListener(this);
-            return consumer;
-        }
+        MessageConsumer consumer = session.createConsumer(queue);
+        consumer.setMessageListener(this);
+        return consumer;
     }
 
     /**
