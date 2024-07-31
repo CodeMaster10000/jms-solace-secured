@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.*;
 
-class MessageConsumerServiceTest {
+class MessageConsumerProviderTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(MessageConsumerServiceTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessageConsumerProviderTest.class);
 
     private AutoCloseable openedMocks = null;
 
@@ -32,7 +32,7 @@ class MessageConsumerServiceTest {
     @Mock
     private MessageConsumer consumer;
 
-    private MessageConsumerService messageConsumerService;
+    private MessageConsumerProvider messageConsumerProvider;
 
     @BeforeEach
     void setUp() throws JMSException {
@@ -43,13 +43,13 @@ class MessageConsumerServiceTest {
         when(session.createQueue(anyString())).thenReturn(queue);
         when(session.createConsumer(queue)).thenReturn(consumer);
 
-        messageConsumerService = new MessageConsumerService(connectionFactory, "demo-queue");
-        messageConsumerService.establishBrokerConnection();
+        messageConsumerProvider = new MessageConsumerProvider(connectionFactory, "demo-queue");
+        messageConsumerProvider.establishBrokerConnection();
     }
 
     @AfterEach
     void tearDown() {
-        messageConsumerService.cleanup();
+        messageConsumerProvider.cleanup();
         try {
             openedMocks.close();
         } catch (Exception ignored) {}
@@ -71,7 +71,7 @@ class MessageConsumerServiceTest {
             final int index = i;
             threads[i] = new Thread(() -> {
                 try {
-                    MessageConsumer messageConsumer = messageConsumerService.createConsumer();
+                    MessageConsumer messageConsumer = messageConsumerProvider.createConsumer();
                     consumers[index] = messageConsumer;
                 } catch (JMSException e) {
                     logger.error("Error creating consumer", e);
@@ -97,7 +97,7 @@ class MessageConsumerServiceTest {
 
     @Test
     void testResourceClosure() throws JMSException {
-        messageConsumerService.cleanup();
+        messageConsumerProvider.cleanup();
 
         verify(session, times(1)).close();
         verify(connection, times(1)).close();
