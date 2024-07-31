@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A service for consuming JMS messages from a Solace queue. This class establishes
@@ -34,9 +35,8 @@ final class MessageConsumerService implements MessageListener {
 
     private final ConnectionFactory connectionFactory;
     private final String solaceQueue;
-    private volatile Connection connection;
+    private final AtomicReference<Connection> connection = new AtomicReference<>();
     private Session session;
-    private MessageConsumer consumer;
     private ScheduledExecutorService scheduler;
 
     /**
@@ -76,23 +76,33 @@ final class MessageConsumerService implements MessageListener {
      * @throws JMSException if an error occurs while establishing the connection or creating the session/consumer
      */
     void establishBrokerConnection() throws JMSException {
-        if (connection == null) { // First check (without locking)
+        if (connection.get() == null) { // First check (without locking)
             synchronized (this) {
-                if (connection == null) { // Second check (with locking)
-                    connection = connectionFactory.createConnection();
-                    // Non-transactional session: can safely be shared among multiple consumers
-                    session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-                    connection.start();
+                if (connection.get() == null) { // Second check (with locking)
+                    Connection newConnection = null;
+                    try {
+                        newConnection = connectionFactory.createConnection();
+                        // Non-transactional session: can safely be shared among multiple consumers
+                        session = newConnection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                        newConnection.start();
+                        connection.set(newConnection);
+                    } catch (JMSException e) {
+                        if (newConnection != null) {
+                            newConnection.close();
+                        }
+                        throw e;
+                    }
                 }
             }
         }
     }
 
-    void createConsumer(String queueName) throws JMSException {
-        Queue queue = session.createQueue(queueName);
+    MessageConsumer createConsumer() throws JMSException {
+        Queue queue = session.createQueue(solaceQueue);
         MessageConsumer consumer = session.createConsumer(queue);
         consumer.setMessageListener(this);
         // No need to create a new session; reuse the existing session
+        return consumer;
     }
 
     /**
@@ -111,7 +121,7 @@ final class MessageConsumerService implements MessageListener {
     private void validateConnection() {
         try {
             synchronized (this) {
-                if (connection == null || session == null) {
+                if (connection.get() == null || session == null) {
                     logger.warn("JMS connection/session is null or inactive. Reinitializing...");
                     cleanup();
                     establishBrokerConnection();
@@ -137,15 +147,15 @@ final class MessageConsumerService implements MessageListener {
     @PreDestroy
     synchronized void cleanup() {
         try {
-            if (consumer != null) {
-                consumer.close();
-            }
             if (session != null) {
                 session.close();
             }
-            if (connection != null) {
-                connection.close();
+
+            Connection c = connection.get();
+            if (c != null) {
+                c.close();
             }
+
             if (scheduler != null) {
                 scheduler.shutdown();
             }

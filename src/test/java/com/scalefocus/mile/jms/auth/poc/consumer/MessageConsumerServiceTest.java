@@ -1,6 +1,7 @@
 package com.scalefocus.mile.jms.auth.poc.consumer;
 
 import jakarta.jms.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -13,6 +14,8 @@ import static org.mockito.Mockito.*;
 class MessageConsumerServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageConsumerServiceTest.class);
+
+    private AutoCloseable openedMocks = null;
 
     @Mock
     private ConnectionFactory connectionFactory;
@@ -30,19 +33,26 @@ class MessageConsumerServiceTest {
     private MessageConsumer consumer;
 
     private MessageConsumerService messageConsumerService;
-    private final String solaceQueue = "testQueue";
 
     @BeforeEach
     void setUp() throws JMSException {
-        MockitoAnnotations.openMocks(this);
+        openedMocks = MockitoAnnotations.openMocks(this);
 
         when(connectionFactory.createConnection()).thenReturn(connection);
         when(connection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(session);
         when(session.createQueue(anyString())).thenReturn(queue);
         when(session.createConsumer(queue)).thenReturn(consumer);
 
-        messageConsumerService = new MessageConsumerService(connectionFactory, solaceQueue);
+        messageConsumerService = new MessageConsumerService(connectionFactory, "demo-queue");
         messageConsumerService.establishBrokerConnection();
+    }
+
+    @AfterEach
+    void tearDown() {
+        messageConsumerService.cleanup();
+        try {
+            openedMocks.close();
+        } catch (Exception ignored) {}
     }
 
     @Test
@@ -55,15 +65,15 @@ class MessageConsumerServiceTest {
     @Test
     void testThreadSafety() throws JMSException {
         Thread[] threads = new Thread[4];
+        MessageConsumer[] consumers = new MessageConsumer[threads.length];
 
         for (int i = 0; i < threads.length; i++) {
-            final int ti = i;
-
+            final int index = i;
             threads[i] = new Thread(() -> {
                 try {
-                    messageConsumerService.createConsumer("queue" + ti);
+                    consumers[index] = messageConsumerService.createConsumer();
                 } catch (JMSException e) {
-                    logger.error("Error creating consumer [{}]", ti, e);
+                    logger.error("Error creating consumer", e);
                 }
             });
 
@@ -73,6 +83,10 @@ class MessageConsumerServiceTest {
                 threads[i].join();
             } catch (InterruptedException e) {
                 logger.error("Current thread interrupted", e);
+            } finally {
+                for (MessageConsumer c : consumers) {
+                    c.close();
+                }
             }
         }
 
