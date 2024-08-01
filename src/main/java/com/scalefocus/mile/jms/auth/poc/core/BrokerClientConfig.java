@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Properties;
 
 /**
  * Configuration class for setting up the JMS broker client with SSL/TLS.
@@ -27,28 +28,50 @@ import java.security.cert.CertificateException;
 @ApplicationScoped
 public class BrokerClientConfig {
 
+    private static final String SOLACE_HOST = "solace.host";
+    private static final String SOLACE_USERNAME = "solace.username";
+    private static final String SOLACE_PASSWORD = "solace.password";
+    private static final String SOLACE_SSL_TRUST_STORE = "solace.ssl.trust-store";
+    private static final String SOLACE_SSL_TRUST_STORE_PASSWORD = "solace.ssl.trust-store-password";
+    private static final String SOLACE_SSL_KEY_STORE = "solace.ssl.key-store";
+    private static final String SOLACE_SSL_KEY_STORE_PASSWORD = "solace.ssl.key-store-password";
+
     private static final Logger logger = LoggerFactory.getLogger(BrokerClientConfig.class);
 
-    @ConfigProperty(name = "solace.host")
+    @ConfigProperty(name = SOLACE_HOST)
     String solaceHost;
 
-    @ConfigProperty(name = "solace.username")
+    @ConfigProperty(name = SOLACE_USERNAME)
     String solaceUsername;
 
-    @ConfigProperty(name = "solace.password")
+    @ConfigProperty(name = SOLACE_PASSWORD)
     String solacePassword;
 
-    @ConfigProperty(name = "solace.ssl.trust-store")
+    @ConfigProperty(name = SOLACE_SSL_TRUST_STORE)
     String trustStorePath;
 
-    @ConfigProperty(name = "solace.ssl.trust-store-password")
+    @ConfigProperty(name = SOLACE_SSL_TRUST_STORE_PASSWORD)
     String trustStorePassword;
 
-    @ConfigProperty(name = "solace.ssl.key-store")
+    @ConfigProperty(name = SOLACE_SSL_KEY_STORE)
     String keyStorePath;
 
-    @ConfigProperty(name = "solace.ssl.key-store-password")
+    @ConfigProperty(name = SOLACE_SSL_KEY_STORE_PASSWORD)
     String keyStorePassword;
+
+    public BrokerClientConfig() {}
+
+    public BrokerClientConfig(Properties properties) {
+        solaceHost = properties.getProperty(SOLACE_HOST, "");
+        solaceUsername = properties.getProperty(SOLACE_USERNAME, "");
+        solacePassword = properties.getProperty(SOLACE_PASSWORD, "");
+        trustStorePath = properties.getProperty(SOLACE_SSL_TRUST_STORE,"");
+        trustStorePassword = properties.getProperty(SOLACE_SSL_TRUST_STORE_PASSWORD,"");
+        keyStorePath = properties.getProperty(SOLACE_SSL_KEY_STORE,"");
+        keyStorePassword = properties.getProperty(SOLACE_SSL_KEY_STORE_PASSWORD,"");
+
+        initializeSslContext();
+    }
 
     /**
      * Initializes the SSL context by setting system properties for the key store and trust store paths and passwords.
@@ -67,7 +90,7 @@ public class BrokerClientConfig {
      * @return the configured {@code ConnectionFactory}, or {@code null} if an error occurs during setup
      */
     @Produces
-    ConnectionFactory createConnectionFactory() {
+    public ConnectionFactory createConnectionFactory() {
         try {
             KeyStore keyStore = loadKeystore(keyStorePath, keyStorePassword);
             KeyStore trustStore = loadKeystore(trustStorePath, trustStorePassword);

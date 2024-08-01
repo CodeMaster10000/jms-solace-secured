@@ -61,7 +61,7 @@ final class MessageConsumerService {
             int queueSize = getQueueSize();
             CountDownLatch latch = new CountDownLatch(queueSize);
             messageConsumerProvider.setLatch(latch);
-            consumer = messageConsumerProvider.createConsumer();
+            consumer = messageConsumerProvider.createConsumer(false);
             latch.await();
         } catch (JMSException | InterruptedException e) {
             logger.error("Error initializing Message message handler service", e);

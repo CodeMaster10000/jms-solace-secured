@@ -71,7 +71,7 @@ class MessageConsumerProviderTest {
             final int index = i;
             threads[i] = new Thread(() -> {
                 try {
-                    MessageConsumer messageConsumer = messageConsumerProvider.createConsumer();
+                    MessageConsumer messageConsumer = messageConsumerProvider.createConsumer(false);
                     consumers[index] = messageConsumer;
                 } catch (JMSException e) {
                     logger.error("Error creating consumer", e);

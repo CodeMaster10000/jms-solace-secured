@@ -81,9 +81,9 @@ final class MessageConsumerProvider implements MessageListener {
     }
 
     /**
-     * Establishes a connection to the JMS broker, creates a session and a consumer for
-     * the specified queue, and sets this service as the message listener. The connection
-     * is then started to begin receiving messages.
+     * Establishes a connection to the JMS broker, creates a session the specified queue,
+     * and sets this service as the message listener. The connection is then started to
+     * begin receiving messages.
      *
      * @throws JMSException if an error occurs while establishing the connection or creating the session/consumer
      */
@@ -114,10 +114,12 @@ final class MessageConsumerProvider implements MessageListener {
      * @return the created {@code MessageConsumer}
      * @throws JMSException if an error occurs while creating the consumer
      */
-    MessageConsumer createConsumer() throws JMSException {
+    MessageConsumer createConsumer(boolean async) throws JMSException {
         Queue queue = session.createQueue(queueUrl);
         MessageConsumer consumer = session.createConsumer(queue);
-        consumer.setMessageListener(this);
+        if (!async) {
+            consumer.setMessageListener(this);
+        }
         return consumer;
     }
 
