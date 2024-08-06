@@ -35,7 +35,7 @@ cd src/main/docker
 docker-compose up
 ```
 
-4. Open your web browser and navigate to [http://localhost:8080](http://localhost:8080). Log in with the credentials `admin:admin`.
+4. Open your web browser and navigate to [http://localhost:8085](http://localhost:8085). Log in with the credentials `admin:admin`.
 
 5. Go to `Default VPN -> Queues` and create a queue with the name `demo-queue`.
 
@@ -53,7 +53,7 @@ After completing the initial setup, you can run the application using the follow
 
 Navigate to the Quarkus DEV-UI and find the Endpoint `solace/{message}` and send the request.
 This will trigger the JMS Producer `MessageProducerService` to send a message to the `demo-queue`. 
-The `MessageConsumerService` acts as a JMS Consumer and will listen for events on that queue.
+The `MessageConsumerService` acts as a JMS Consumer and will periodically listen for events on that queue.
 Verify the application logs for operation validity.
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
